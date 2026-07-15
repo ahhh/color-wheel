@@ -53,7 +53,7 @@
     filter:drop-shadow(0 24px 60px rgba(0,0,0,.45));outline:none}
   svg#wheel .handle{cursor:grab}
   svg#wheel .handle:active{cursor:grabbing}
-  svg#wheel .seg{stroke:var(--bg);stroke-width:.5}
+  svg#wheel .seg{stroke-width:.5}
   svg#wheel:focus-visible{outline:2px solid var(--accent);outline-offset:8px;border-radius:50%}
 
   .readout{
@@ -70,7 +70,13 @@
   .panel{display:flex;flex-direction:column;gap:26px}
   .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink-faint);margin:0 0 12px;font-weight:600}
-  .harmony-list{display:flex;flex-direction:column;gap:2px}
+  .harmony-list{display:flex;flex-direction:column;gap:2px;
+    max-height:420px;overflow-y:auto;overscroll-behavior:contain;
+    margin:-4px -6px 0;padding:4px 6px;
+    scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  .harmony-list::-webkit-scrollbar{width:8px}
+  .harmony-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+  .harmony-list::-webkit-scrollbar-track{background:transparent}
   .htype{
     all:unset;display:flex;align-items:center;gap:12px;cursor:pointer;
     padding:11px 12px;border-radius:var(--radius);border:1px solid transparent;
@@ -147,7 +153,7 @@
   <div class="stage">
     <div class="wheel-wrap">
       <svg id="wheel" viewBox="0 0 400 400" role="slider" tabindex="0"
-           aria-label="Color wheel — drag a node or use arrow keys to rotate the harmony">
+           aria-label="Color wheel — drag a node to rotate the hue or stretch it in and out to change the black level; arrow keys: left/right rotate, up/down adjust black level">
         <g id="segments"></g>
         <g id="links" fill="none"></g>
         <g id="handles"></g>
@@ -155,7 +161,7 @@
       <div class="readout" id="readout">
         <div class="rname" id="roName">—</div>
         <div class="rdeg" id="roDeg">0°</div>
-        <div class="rhint">drag · arrow keys</div>
+        <div class="rhint" id="roHint">drag · in/out for black</div>
       </div>
     </div>
 
@@ -217,7 +223,124 @@ harmonies:
 
   - name: Square
     description: Four hues evenly spaced into a square.
-    offsets: [0, 90, 180, 270]`;
+    offsets: [0, 90, 180, 270]
+
+  - name: Narrow Analogous
+    description: A tightly blended trio with only subtle hue movement.
+    offsets: [-15, 0, 15]
+
+  - name: Wide Analogous
+    description: A broader family of related hues with more visible contrast.
+    offsets: [-60, 0, 60]
+
+  - name: Accented Analogous
+    description: Three neighbouring hues interrupted by one bold opposite accent.
+    offsets: [-30, 0, 30, 180]
+
+  - name: Double Complementary
+    description: Two nearby hues paired with both of their direct complements.
+    offsets: [0, 30, 180, 210]
+
+  - name: Complementary Cluster
+    description: Two compact hue families positioned opposite one another.
+    offsets: [-20, 0, 20, 160, 180, 200]
+
+  - name: Kite
+    description: A central hue, two broad neighbours, and a sharp complementary accent.
+    offsets: [-60, 0, 60, 180]
+
+  - name: Half-Wheel Triad
+    description: Three strong anchors spanning exactly half of the wheel.
+    offsets: [0, 90, 180]
+
+  - name: Asymmetric Triad
+    description: An intentionally uneven triangle that feels energetic and directional.
+    offsets: [0, 100, 230]
+
+  - name: Pentadic
+    description: Five hues distributed evenly around the wheel.
+    offsets: [0, 72, 144, 216, 288]
+
+  - name: Hexadic
+    description: Six evenly spaced hues forming a complete prismatic palette.
+    offsets: [0, 60, 120, 180, 240, 300]
+
+  # --- Organic and experimental geometries ---
+
+  - name: Golden Angle
+    description: Successive golden-angle turns create an organic, non-repeating balance.
+    offsets: [0, 137.508, 275.016]
+
+  - name: Golden Spiral
+    description: Five successive golden-angle steps form a naturally scattered palette.
+    offsets: [0, 137.508, 275.016, 52.524, 190.032]
+
+  - name: Pinwheel
+    description: Alternating short and long jumps give the palette a sense of rotation.
+    offsets: [0, 45, 135, 180, 270, 315]
+
+  - name: Crown
+    description: A wide arc of related hues is anchored by one distant accent.
+    offsets: [-75, -45, -15, 15, 45, 180]
+
+  - name: Echo
+    description: Every primary selection is followed by a nearby visual echo.
+    offsets: [0, 20, 120, 140, 240, 260]
+
+  - name: Orbit
+    description: A central complementary axis surrounded by four supporting satellites.
+    offsets: [-40, 0, 40, 140, 180, 220]
+
+  - name: Broken Symmetry
+    description: An almost-square arrangement shifted slightly to avoid perfect balance.
+    offsets: [0, 80, 185, 275]
+
+  # --- Music-inspired patterns ---
+  # These treat one semitone as 30 degrees on a twelve-part wheel.
+
+  - name: Perfect Fifth
+    description: Two hues separated by seven semitones, mirroring a musical perfect fifth.
+    offsets: [0, 210]
+
+  - name: Major Chord
+    description: Root, major third, and perfect fifth mapped onto the hue wheel.
+    offsets: [0, 120, 210]
+
+  - name: Minor Chord
+    description: Root, minor third, and perfect fifth create a darker triangular relationship.
+    offsets: [0, 90, 210]
+
+  - name: Suspended Second
+    description: An open, unresolved palette modeled after a suspended-second chord.
+    offsets: [0, 60, 210]
+
+  - name: Suspended Fourth
+    description: A spacious palette modeled after a suspended-fourth chord.
+    offsets: [0, 150, 210]
+
+  - name: Major Seventh
+    description: A major triad plus a hue sitting one semitone below the octave.
+    offsets: [0, 120, 210, 330]
+
+  - name: Minor Seventh
+    description: A minor triad extended with a warm, unresolved seventh.
+    offsets: [0, 90, 210, 300]
+
+  - name: Dominant Seventh
+    description: A bright major structure with a tense seventh that wants to resolve.
+    offsets: [0, 120, 210, 300]
+
+  - name: Fifths Cascade
+    description: Five consecutive moves around the musical circle of fifths.
+    offsets: [0, 210, 60, 270, 120]
+
+  - name: Chromatic Cluster
+    description: Four adjacent semitone steps form a dense, shimmering hue cluster.
+    offsets: [0, 30, 60, 90]
+
+  - name: Whole-Tone
+    description: Six whole-tone steps produce an evenly floating, dreamlike palette.
+    offsets: [0, 60, 120, 180, 240, 300]`;
 
 /* ------------------------------------------------------------------ *
  * Minimal YAML parser (subset: maps, block & flow sequences, scalars)
@@ -299,7 +422,8 @@ function parseYAML(text){
  * Color model
  * ------------------------------------------------------------------ */
 const SEGMENTS = 24;
-const SAT = 68, LIG = 54;
+const SAT = 68;
+let   LIG = 54;                 // current lightness, driven by the radial "black level"
 const NAMES = ["Red","Vermilion","Orange","Amber","Gold","Yellow","Chartreuse",
   "Lime","Green","Emerald","Jade","Teal","Aqua","Cyan","Azure","Cerulean","Blue",
   "Indigo","Violet","Purple","Magenta","Fuchsia","Rose","Crimson"];
@@ -314,12 +438,12 @@ function hslToHex(h,s,l){
   const hx = x => Math.round(255*x).toString(16).padStart(2,"0");
   return "#"+hx(f(0))+hx(f(8))+hx(f(4));
 }
-// angle (0 = top, clockwise) maps 1:1 onto HSL hue. Color is snapped to the
-// segment centre so a node always reports exactly the swatch beneath it.
+// angle (0 = top, clockwise) maps 1:1 onto HSL hue. The hue is continuous —
+// every angle yields its exact colour — while the name is the nearest of the
+// 24 reference hues so a node still reads out a friendly label.
 function colorAt(angle){
-  const step = 360/SEGMENTS;
-  const seg = Math.floor(norm(angle)/step);
-  const hue = seg*step + step/2;
+  const hue = norm(angle);
+  const seg = Math.floor(hue/(360/NAMES.length));
   return {
     hue,
     hex: hslToHex(hue, SAT, LIG),
@@ -330,7 +454,16 @@ function colorAt(angle){
 /* ------------------------------------------------------------------ *
  * Geometry (SVG: 400x400, top = 0deg, clockwise)
  * ------------------------------------------------------------------ */
-const CX=200, CY=200, R_OUT=182, R_IN=96, R_HANDLE=140;
+const CX=200, CY=200, R_OUT=182, R_IN=96;
+
+/* Radial axis = "level of black": the hub is nearly black, the rim is vivid.
+ * lightT (0..1) is how far out the whole constellation is stretched. */
+const L_MIN=6, L_MAX=64;
+const lightnessForT = t => L_MIN + t*(L_MAX-L_MIN);
+const radiusForT    = t => R_IN + t*(R_OUT-R_IN);
+const tForRadius    = r => Math.max(0, Math.min(1, (r-R_IN)/(R_OUT-R_IN)));
+let   lightT = (54-L_MIN)/(L_MAX-L_MIN);   // default ≈ the classic vivid wheel
+const handleR = () => radiusForT(lightT);
 const pt = (a,r) => {
   const rad = a*Math.PI/180;
   return [CX + r*Math.sin(rad), CY - r*Math.cos(rad)];
@@ -357,14 +490,22 @@ const segG = $("segments"), linkG = $("links"), handG = $("handles");
 function currentDef(){ return defs[current]; }
 function nodeAngles(){ return currentDef().offsets.map(o => norm(base + o)); }
 
-/* ----- one-time: draw the static wheel disc ----- */
+/* ----- one-time: draw the disc as a smooth 2D gradient ----- *
+ * angular axis = hue, radial axis = lightness (hub ≈ black → rim = vivid).   */
+const WHEEL_SLICES = 180;               // hue resolution (2° per slice)
+const WHEEL_RINGS  = 22;                // black-level resolution
 function drawWheel(){
-  const step = 360/SEGMENTS;
+  const aStep = 360/WHEEL_SLICES;
+  const rStep = (R_OUT-R_IN)/WHEEL_RINGS;
   let s = "";
-  for(let k=0;k<SEGMENTS;k++){
-    const a0=k*step, a1=(k+1)*step;
-    const c = colorAt(a0+step/2);
-    s += `<path class="seg" d="${wedge(a0,a1,R_IN,R_OUT)}" fill="${c.hex}"/>`;
+  for(let ri=0; ri<WHEEL_RINGS; ri++){
+    const r0 = R_IN + ri*rStep, r1 = r0 + rStep + 0.6;   // radial overlap
+    const L  = lightnessForT((ri+0.5)/WHEEL_RINGS);
+    for(let k=0;k<WHEEL_SLICES;k++){
+      const a0=k*aStep, a1=(k+1)*aStep + aStep*0.6;       // angular overlap
+      const hex = hslToHex(norm(k*aStep + aStep/2), SAT, L);
+      s += `<path class="seg" d="${wedge(a0,a1,r0,r1)}" fill="${hex}" stroke="${hex}"/>`;
+    }
   }
   segG.innerHTML = s;
 }
@@ -372,7 +513,7 @@ function drawWheel(){
 /* ----- redraw links + handles for the current harmony ----- */
 function drawOverlay(){
   const offs = currentDef().offsets;
-  const pts = offs.map(o => pt(norm(base+o), R_HANDLE));
+  const pts = offs.map(o => pt(norm(base+o), handleR()));
 
   // connecting shape: sort by angle so polygons close cleanly
   const order = offs.map((o,idx)=>({idx, a:norm(base+o)})).sort((p,q)=>p.a-q.a);
@@ -430,11 +571,12 @@ function drawReadout(){
   const c = colorAt(base);
   $("roName").textContent = c.name;
   $("roDeg").textContent = Math.round(norm(base))+"°";
+  $("roHint").textContent = "black "+Math.round((1-lightT)*100)+"%";
   $("wheel").setAttribute("aria-valuenow", Math.round(norm(base)));
   $("wheel").setAttribute("aria-valuetext", `${Math.round(norm(base))} degrees, ${c.name}`);
 }
 
-function refresh(){ drawOverlay(); drawPalette(); drawReadout(); }
+function refresh(){ LIG = lightnessForT(lightT); drawOverlay(); drawPalette(); drawReadout(); }
 
 /* ------------------------------------------------------------------ *
  * Harmony list (right sidebar)
@@ -478,12 +620,15 @@ function selectHarmony(i){
 /* ------------------------------------------------------------------ *
  * Interaction
  * ------------------------------------------------------------------ */
-function pointerAngle(evt){
+function pointerPolar(evt){
   const svg = $("wheel");
   const r = svg.getBoundingClientRect();
   const x = (evt.clientX - r.left)/r.width*400;
   const y = (evt.clientY - r.top)/r.height*400;
-  return norm(Math.atan2(x-CX, -(y-CY))*180/Math.PI);
+  return {
+    ang: norm(Math.atan2(x-CX, -(y-CY))*180/Math.PI),
+    dist: Math.hypot(x-CX, y-CY)
+  };
 }
 $("handles").addEventListener("pointerdown", e=>{
   const g = e.target.closest(".handle");
@@ -494,7 +639,9 @@ $("handles").addEventListener("pointerdown", e=>{
 });
 $("wheel").addEventListener("pointermove", e=>{
   if(dragOffset===null) return;
-  base = norm(pointerAngle(e) - dragOffset);
+  const p = pointerPolar(e);
+  base = norm(p.ang - dragOffset);   // rotate hue
+  lightT = tForRadius(p.dist);       // stretch the black level in / out
   refresh();
 });
 $("wheel").addEventListener("pointerup", ()=>{ dragOffset=null; });
@@ -502,8 +649,10 @@ $("wheel").addEventListener("pointercancel", ()=>{ dragOffset=null; });
 
 $("wheel").addEventListener("keydown", e=>{
   const step = 360/SEGMENTS;
-  if(e.key==="ArrowLeft"||e.key==="ArrowDown"){ base=norm(base-step); refresh(); e.preventDefault(); }
-  else if(e.key==="ArrowRight"||e.key==="ArrowUp"){ base=norm(base+step); refresh(); e.preventDefault(); }
+  if(e.key==="ArrowLeft"){ base=norm(base-step); refresh(); e.preventDefault(); }
+  else if(e.key==="ArrowRight"){ base=norm(base+step); refresh(); e.preventDefault(); }
+  else if(e.key==="ArrowUp"){ lightT=Math.min(1,lightT+0.05); refresh(); e.preventDefault(); }
+  else if(e.key==="ArrowDown"){ lightT=Math.max(0,lightT-0.05); refresh(); e.preventDefault(); }
 });
 
 $("harmonyList").addEventListener("click", e=>{
