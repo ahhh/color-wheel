@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color Wheel Studio</title>
+<style>
+  :root{
+    --bg:#101216;
+    --panel:#16191f;
+    --panel-2:#1c2027;
+    --line:#2a2f38;
+    --line-soft:#22262d;
+    --ink:#eef1f5;
+    --ink-dim:#9aa3b0;
+    --ink-faint:#626b78;
+    --accent:#5ad1c8;
+    --radius:10px;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+  }
+  .app{max-width:1180px;margin:0 auto;padding:34px 28px 80px}
+
+  /* Masthead ---------------------------------------------------- */
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--ink-faint);
+    display:flex;gap:12px;align-items:center;
+  }
+  .eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+  .masthead h1{
+    font-size:clamp(38px,7vw,68px);line-height:.98;font-weight:800;
+    letter-spacing:-.03em;margin:.18em 0 .1em;
+  }
+  .masthead p{margin:0;color:var(--ink-dim);max-width:44ch;font-size:15px}
+
+  /* Stage ------------------------------------------------------- */
+  .stage{
+    display:grid;grid-template-columns:minmax(0,1fr) 300px;
+    gap:44px;margin-top:34px;align-items:start;
+  }
+  .wheel-wrap{position:relative}
+  svg#wheel{width:100%;height:auto;display:block;touch-action:none;
+    filter:drop-shadow(0 24px 60px rgba(0,0,0,.45));outline:none}
+  svg#wheel .handle{cursor:grab}
+  svg#wheel .handle:active{cursor:grabbing}
+  svg#wheel .seg{stroke:var(--bg);stroke-width:.5}
+  svg#wheel:focus-visible{outline:2px solid var(--accent);outline-offset:8px;border-radius:50%}
+
+  .readout{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    text-align:center;pointer-events:none;
+  }
+  .readout .rname{font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-dim)}
+  .readout .rdeg{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.02em}
+  .readout .rhint{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-faint);margin-top:6px}
+
+  /* Panel ------------------------------------------------------- */
+  .panel{display:flex;flex-direction:column;gap:26px}
+  .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--ink-faint);margin:0 0 12px;font-weight:600}
+  .harmony-list{display:flex;flex-direction:column;gap:2px}
+  .htype{
+    all:unset;display:flex;align-items:center;gap:12px;cursor:pointer;
+    padding:11px 12px;border-radius:var(--radius);border:1px solid transparent;
+    transition:background .12s,border-color .12s;
+  }
+  .htype:hover{background:var(--panel)}
+  .htype[aria-current="true"]{background:var(--panel-2);border-color:var(--line)}
+  .htype:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .htype .glyph{width:26px;height:26px;flex:0 0 auto;opacity:.9}
+  .htype .meta{display:flex;flex-direction:column;min-width:0}
+  .htype .hn{font-size:14px;font-weight:600}
+  .htype .hc{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);
+    letter-spacing:.04em}
+  .htype[aria-current="true"] .hc{color:var(--accent)}
+
+  textarea#yaml{
+    width:100%;min-height:190px;resize:vertical;background:var(--panel);
+    color:var(--ink);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px;font-family:var(--mono);font-size:12px;line-height:1.55;
+    tab-size:2;
+  }
+  textarea#yaml:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  button.act{
+    all:unset;cursor:pointer;font-family:var(--mono);font-size:11px;
+    letter-spacing:.08em;text-transform:uppercase;padding:9px 14px;
+    border-radius:8px;background:var(--accent);color:#06201d;font-weight:600;
+  }
+  button.act:hover{filter:brightness(1.08)}
+  button.act:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .status{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+  .status.err{color:#ff8f8f}
+  .status.ok{color:var(--accent)}
+
+  /* Palette output --------------------------------------------- */
+  .palette-out{margin-top:52px}
+  .main-pal{
+    display:grid;grid-template-columns:repeat(var(--n,4),1fr);
+    gap:14px;margin-bottom:40px;
+  }
+  .sw{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line-soft);
+    background:var(--panel)}
+  .sw .chip{height:96px}
+  .sw .info{padding:11px 12px 13px}
+  .sw .nm{font-size:13px;font-weight:600}
+  .sw .hx{font-family:var(--mono);font-size:11px;color:var(--ink-dim);
+    display:flex;justify-content:space-between;margin-top:3px}
+
+  .var-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+  .var-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 34px}
+  .var{}
+  .var .vt{font-size:13px;margin-bottom:8px;color:var(--ink)}
+  .var .vt small{color:var(--ink-faint);font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;margin-left:6px}
+  .var .strip{display:flex;height:44px;border-radius:8px;overflow:hidden;
+    border:1px solid var(--line-soft)}
+  .var .strip span{flex:1}
+
+  @media (max-width:880px){
+    .stage{grid-template-columns:1fr}
+    .var-grid{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="masthead">
+    <div class="eyebrow"><span class="dot"></span><span>Color Wheel Studio</span><span id="ebIndex"></span></div>
+    <h1 id="hName">—</h1>
+    <p id="hDesc"></p>
+  </header>
+
+  <div class="stage">
+    <div class="wheel-wrap">
+      <svg id="wheel" viewBox="0 0 400 400" role="slider" tabindex="0"
+           aria-label="Color wheel — drag a node or use arrow keys to rotate the harmony">
+        <g id="segments"></g>
+        <g id="links" fill="none"></g>
+        <g id="handles"></g>
+      </svg>
+      <div class="readout" id="readout">
+        <div class="rname" id="roName">—</div>
+        <div class="rdeg" id="roDeg">0°</div>
+        <div class="rhint">drag · arrow keys</div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <section>
+        <h2 class="lbl">Wheel Types</h2>
+        <div class="harmony-list" id="harmonyList" role="listbox" aria-label="Harmony types"></div>
+      </section>
+      <section>
+        <h2 class="lbl">Definitions · YAML</h2>
+        <textarea id="yaml" spellcheck="false" aria-label="Wheel type definitions in YAML"></textarea>
+        <div class="row">
+          <button class="act" id="loadBtn">Load definitions</button>
+          <span class="status" id="status"></span>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <section class="palette-out">
+    <h2 class="lbl">Palette</h2>
+    <div class="main-pal" id="mainPal"></div>
+    <div class="var-head">
+      <h2 class="lbl" style="margin:0">Variations · rotate the constellation</h2>
+    </div>
+    <div class="var-grid" id="variations"></div>
+  </section>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ * Default wheel-type definitions (editable in the panel, add your own)
+ * offsets = hue positions in degrees relative to the draggable base.
+ * ------------------------------------------------------------------ */
+const DEFAULT_YAML = `# Each item is a wheel type. "offsets" are degrees around the wheel,
+# measured from the draggable base node (0 = the base itself).
+harmonies:
+  - name: Complementary
+    description: Two hues sitting directly opposite each other.
+    offsets: [0, 180]
+
+  - name: Analogous
+    description: Neighbouring hues that sit quietly side by side.
+    offsets: [-30, 0, 30]
+
+  - name: Triadic
+    description: Three hues spaced evenly around the wheel.
+    offsets: [0, 120, 240]
+
+  - name: Split Complementary
+    description: A base hue plus the two neighbours of its opposite.
+    offsets: [0, 150, 210]
+
+  - name: Tetradic
+    description: Two complementary pairs 60 degrees apart form a rectangle.
+    offsets: [0, 60, 180, 240]
+
+  - name: Square
+    description: Four hues evenly spaced into a square.
+    offsets: [0, 90, 180, 270]`;
+
+/* ------------------------------------------------------------------ *
+ * Minimal YAML parser (subset: maps, block & flow sequences, scalars)
+ * ------------------------------------------------------------------ */
+function parseYAML(text){
+  const raw = text.split("\n");
+  const lines = [];
+  for(let l of raw){
+    // drop full-line comments and trailing " # ..." comments
+    if(/^\s*#/.test(l)) continue;
+    l = l.replace(/\s+#.*$/,"");
+    if(l.trim()==="") continue;
+    lines.push(l.replace(/\t/g,"  "));
+  }
+  let i = 0;
+  const indent = l => l.search(/\S/);
+
+  function scalar(s){
+    s = s.trim();
+    if((s[0]==='"'&&s.endsWith('"'))||(s[0]==="'"&&s.endsWith("'"))) return s.slice(1,-1);
+    if(s==="true") return true;
+    if(s==="false") return false;
+    if(s==="null"||s==="~"||s==="") return null;
+    if(/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
+    return s;
+  }
+  function value(s){
+    s = s.trim();
+    if(s[0]==="["){
+      const inner = s.slice(1, s.lastIndexOf("]"));
+      if(inner.trim()==="") return [];
+      return inner.split(",").map(x=>scalar(x));
+    }
+    return scalar(s);
+  }
+  function node(ind){
+    const first = lines[i];
+    if(first.trim().startsWith("-")){
+      const arr = [];
+      while(i<lines.length && indent(lines[i])===ind && lines[i].trim().startsWith("-")){
+        const dashCol = indent(lines[i]);
+        const after = lines[i].slice(dashCol+1).replace(/^\s/,"");
+        if(after===""){                       // value on following lines
+          i++;
+          arr.push(i<lines.length && indent(lines[i])>ind ? node(indent(lines[i])) : null);
+        } else if(/^[^\s"'\[]+\s*:/.test(after)){ // inline map: "- key: val"
+          const mapInd = dashCol + (lines[i].length - dashCol - lines[i].slice(dashCol+1).replace(/^\s*/,"").length);
+          lines[i] = " ".repeat(mapInd) + after;   // re-indent so map parser sees it
+          arr.push(node(mapInd));
+        } else {                               // inline scalar / flow list
+          arr.push(value(after));
+          i++;
+        }
+      }
+      return arr;
+    } else {
+      const obj = {};
+      while(i<lines.length && indent(lines[i])===ind && !lines[i].trim().startsWith("-")){
+        const t = lines[i].trim();
+        const c = t.indexOf(":");
+        const key = t.slice(0,c).trim();
+        const rest = t.slice(c+1).trim();
+        if(rest===""){
+          i++;
+          obj[key] = (i<lines.length && indent(lines[i])>ind) ? node(indent(lines[i])) : null;
+        } else {
+          obj[key] = value(rest);
+          i++;
+        }
+      }
+      return obj;
+    }
+  }
+  if(lines.length===0) return {};
+  return node(indent(lines[0]));
+}
+
+/* ------------------------------------------------------------------ *
+ * Color model
+ * ------------------------------------------------------------------ */
+const SEGMENTS = 24;
+const SAT = 68, LIG = 54;
+const NAMES = ["Red","Vermilion","Orange","Amber","Gold","Yellow","Chartreuse",
+  "Lime","Green","Emerald","Jade","Teal","Aqua","Cyan","Azure","Cerulean","Blue",
+  "Indigo","Violet","Purple","Magenta","Fuchsia","Rose","Crimson"];
+
+const norm = a => ((a % 360) + 360) % 360;
+
+function hslToHex(h,s,l){
+  s/=100; l/=100;
+  const k = n => (n + h/30) % 12;
+  const a = s*Math.min(l,1-l);
+  const f = n => l - a*Math.max(-1, Math.min(k(n)-3, 9-k(n), 1));
+  const hx = x => Math.round(255*x).toString(16).padStart(2,"0");
+  return "#"+hx(f(0))+hx(f(8))+hx(f(4));
+}
+// angle (0 = top, clockwise) maps 1:1 onto HSL hue. Color is snapped to the
+// segment centre so a node always reports exactly the swatch beneath it.
+function colorAt(angle){
+  const step = 360/SEGMENTS;
+  const seg = Math.floor(norm(angle)/step);
+  const hue = seg*step + step/2;
+  return {
+    hue,
+    hex: hslToHex(hue, SAT, LIG),
+    name: NAMES[seg % NAMES.length]
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Geometry (SVG: 400x400, top = 0deg, clockwise)
+ * ------------------------------------------------------------------ */
+const CX=200, CY=200, R_OUT=182, R_IN=96, R_HANDLE=140;
+const pt = (a,r) => {
+  const rad = a*Math.PI/180;
+  return [CX + r*Math.sin(rad), CY - r*Math.cos(rad)];
+};
+function wedge(a0,a1,ri,ro){
+  const [ox0,oy0]=pt(a0,ro), [ox1,oy1]=pt(a1,ro);
+  const [ix1,iy1]=pt(a1,ri), [ix0,iy0]=pt(a0,ri);
+  const large = (a1-a0)>180 ? 1 : 0;
+  return `M${ox0} ${oy0} A${ro} ${ro} 0 ${large} 1 ${ox1} ${oy1}`
+       + `L${ix1} ${iy1} A${ri} ${ri} 0 ${large} 0 ${ix0} ${iy0} Z`;
+}
+
+/* ------------------------------------------------------------------ *
+ * State + DOM
+ * ------------------------------------------------------------------ */
+let defs = [];
+let current = 0;
+let base = 0;              // base angle in degrees
+let dragOffset = null;     // which node's offset is being dragged
+
+const $ = id => document.getElementById(id);
+const segG = $("segments"), linkG = $("links"), handG = $("handles");
+
+function currentDef(){ return defs[current]; }
+function nodeAngles(){ return currentDef().offsets.map(o => norm(base + o)); }
+
+/* ----- one-time: draw the static wheel disc ----- */
+function drawWheel(){
+  const step = 360/SEGMENTS;
+  let s = "";
+  for(let k=0;k<SEGMENTS;k++){
+    const a0=k*step, a1=(k+1)*step;
+    const c = colorAt(a0+step/2);
+    s += `<path class="seg" d="${wedge(a0,a1,R_IN,R_OUT)}" fill="${c.hex}"/>`;
+  }
+  segG.innerHTML = s;
+}
+
+/* ----- redraw links + handles for the current harmony ----- */
+function drawOverlay(){
+  const offs = currentDef().offsets;
+  const pts = offs.map(o => pt(norm(base+o), R_HANDLE));
+
+  // connecting shape: sort by angle so polygons close cleanly
+  const order = offs.map((o,idx)=>({idx, a:norm(base+o)})).sort((p,q)=>p.a-q.a);
+  const path = order.map(o=>pts[o.idx].map(n=>n.toFixed(1)).join(",")).join(" ");
+  linkG.innerHTML = pts.length>2
+    ? `<polygon points="${path}" stroke="#f4f6f8" stroke-width="3"
+         stroke-linejoin="round" fill="rgba(255,255,255,.04)"/>`
+    : `<polyline points="${path}" stroke="#f4f6f8" stroke-width="3"
+         stroke-linecap="round"/>`;
+
+  handG.innerHTML = offs.map((o,idx)=>{
+    const [x,y]=pts[idx];
+    const c = colorAt(norm(base+o));
+    const lead = idx===0;
+    return `<g class="handle" data-off="${o}" tabindex="-1">
+      <circle cx="${x}" cy="${y}" r="${lead?16:13}" fill="#f4f6f8"/>
+      <circle cx="${x}" cy="${y}" r="${lead?9:7}" fill="${c.hex}"
+        stroke="#12141a" stroke-width="${lead?2:1.5}"/>
+    </g>`;
+  }).join("");
+}
+
+/* ----- palette + variation strips ----- */
+function swatch(c){
+  return `<div class="sw">
+    <div class="chip" style="background:${c.hex}"></div>
+    <div class="info"><div class="nm">${c.name}</div>
+      <div class="hx"><span>${c.hex}</span><span>${Math.round(c.hue)}°</span></div></div>
+  </div>`;
+}
+function drawPalette(){
+  const offs = currentDef().offsets;
+  const cols = offs.map(o => colorAt(norm(base+o)));
+  const mp = $("mainPal");
+  mp.style.setProperty("--n", cols.length);
+  mp.innerHTML = cols.map(swatch).join("");
+
+  // variations: rotate the whole constellation in one-segment steps
+  const step = 360/SEGMENTS;
+  let v = "";
+  for(let k=1;k<=6;k++){
+    const b = norm(base + k*step);
+    const cs = offs.map(o => colorAt(norm(b+o)));
+    const lead = colorAt(b);
+    v += `<div class="var">
+      <div class="vt">${cs.map(c=>c.name).join(" · ")}<small>+${Math.round(k*step)}°</small></div>
+      <div class="strip">${cs.map(c=>`<span style="background:${c.hex}"></span>`).join("")}</div>
+    </div>`;
+  }
+  $("variations").innerHTML = v;
+}
+
+/* ----- readout in the wheel hub ----- */
+function drawReadout(){
+  const c = colorAt(base);
+  $("roName").textContent = c.name;
+  $("roDeg").textContent = Math.round(norm(base))+"°";
+  $("wheel").setAttribute("aria-valuenow", Math.round(norm(base)));
+  $("wheel").setAttribute("aria-valuetext", `${Math.round(norm(base))} degrees, ${c.name}`);
+}
+
+function refresh(){ drawOverlay(); drawPalette(); drawReadout(); }
+
+/* ------------------------------------------------------------------ *
+ * Harmony list (right sidebar)
+ * ------------------------------------------------------------------ */
+function miniGlyph(def){
+  // tiny preview of the constellation
+  const cx=13,cy=13,r=10;
+  const pts = def.offsets.map(o=>{
+    const rad=o*Math.PI/180;
+    return [cx+r*Math.sin(rad), cy-r*Math.cos(rad)];
+  });
+  const p = pts.map(pp=>pp.map(n=>n.toFixed(1)).join(",")).join(" ");
+  const shape = pts.length>2
+    ? `<polygon points="${p}" fill="none" stroke="currentColor" stroke-width="1.3"/>`
+    : `<polyline points="${p}" fill="none" stroke="currentColor" stroke-width="1.3"/>`;
+  const dots = pts.map(pp=>`<circle cx="${pp[0]}" cy="${pp[1]}" r="2" fill="currentColor"/>`).join("");
+  return `<svg class="glyph" viewBox="0 0 26 26">${shape}${dots}</svg>`;
+}
+function buildList(){
+  $("harmonyList").innerHTML = defs.map((d,i)=>`
+    <button class="htype" role="option" data-i="${i}" aria-current="${i===current}">
+      ${miniGlyph(d)}
+      <span class="meta">
+        <span class="hn">${d.name}</span>
+        <span class="hc">${d.offsets.length} nodes</span>
+      </span>
+    </button>`).join("");
+}
+
+function selectHarmony(i){
+  current = i;
+  const d = currentDef();
+  $("hName").textContent = d.name;
+  $("hDesc").textContent = d.description || "";
+  $("ebIndex").textContent = String(i+1).padStart(2,"0")+" / "+String(defs.length).padStart(2,"0");
+  document.querySelectorAll(".htype").forEach(b=>
+    b.setAttribute("aria-current", (+b.dataset.i===i)));
+  refresh();
+}
+
+/* ------------------------------------------------------------------ *
+ * Interaction
+ * ------------------------------------------------------------------ */
+function pointerAngle(evt){
+  const svg = $("wheel");
+  const r = svg.getBoundingClientRect();
+  const x = (evt.clientX - r.left)/r.width*400;
+  const y = (evt.clientY - r.top)/r.height*400;
+  return norm(Math.atan2(x-CX, -(y-CY))*180/Math.PI);
+}
+$("handles").addEventListener("pointerdown", e=>{
+  const g = e.target.closest(".handle");
+  if(!g) return;
+  dragOffset = Number(g.dataset.off);
+  try{ $("wheel").setPointerCapture(e.pointerId); }catch(_){}
+  e.preventDefault();
+});
+$("wheel").addEventListener("pointermove", e=>{
+  if(dragOffset===null) return;
+  base = norm(pointerAngle(e) - dragOffset);
+  refresh();
+});
+$("wheel").addEventListener("pointerup", ()=>{ dragOffset=null; });
+$("wheel").addEventListener("pointercancel", ()=>{ dragOffset=null; });
+
+$("wheel").addEventListener("keydown", e=>{
+  const step = 360/SEGMENTS;
+  if(e.key==="ArrowLeft"||e.key==="ArrowDown"){ base=norm(base-step); refresh(); e.preventDefault(); }
+  else if(e.key==="ArrowRight"||e.key==="ArrowUp"){ base=norm(base+step); refresh(); e.preventDefault(); }
+});
+
+$("harmonyList").addEventListener("click", e=>{
+  const b = e.target.closest(".htype");
+  if(b) selectHarmony(+b.dataset.i);
+});
+
+/* ------------------------------------------------------------------ *
+ * Load definitions
+ * ------------------------------------------------------------------ */
+function applyYAML(text){
+  const status = $("status");
+  try{
+    const data = parseYAML(text);
+    const list = data && data.harmonies;
+    if(!Array.isArray(list) || list.length===0) throw new Error("no 'harmonies:' list found");
+    list.forEach((d,i)=>{
+      if(!d || typeof d.name!=="string") throw new Error(`item ${i+1} is missing a name`);
+      if(!Array.isArray(d.offsets) || d.offsets.some(n=>typeof n!=="number"))
+        throw new Error(`"${d.name||i+1}" needs a numeric offsets list`);
+    });
+    defs = list;
+    current = Math.min(current, defs.length-1);
+    buildList();
+    selectHarmony(current);
+    status.textContent = `Loaded ${defs.length} wheel type${defs.length>1?"s":""}.`;
+    status.className = "status ok";
+    return true;
+  }catch(err){
+    status.textContent = "Error: "+err.message;
+    status.className = "status err";
+    return false;
+  }
+}
+$("loadBtn").addEventListener("click", ()=>applyYAML($("yaml").value));
+
+/* ------------------------------------------------------------------ *
+ * Boot
+ * ------------------------------------------------------------------ */
+drawWheel();
+$("yaml").value = DEFAULT_YAML;
+applyYAML(DEFAULT_YAML);
+selectHarmony(Math.min(4, defs.length-1)); // open on Tetradic, like the reference
+base = 22;                                  // a pleasing default tilt
+refresh();
+</script>
+</body>
+</html>
